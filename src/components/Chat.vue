@@ -101,7 +101,6 @@ export default {
 .chat {
 	width: 100%;
 	max-width: 24em;
-	background-color: ;
 }
 
 .msg-list {

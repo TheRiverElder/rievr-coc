@@ -1,10 +1,10 @@
-exports = class Inv {
+module.exports = class Inv {
     constructor({
         name = '',
         id = v4(),
 		nationality = '',
-		story: '',
-		avatar: null,
+		story = '',
+		avatar = null,
 		values = {},
 		inventory = [],
     }) {

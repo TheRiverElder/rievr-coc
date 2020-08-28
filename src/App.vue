@@ -1,56 +1,36 @@
 <template>
-  <v-app>
+  <v-app class="fill">
     <v-app-bar
       app
       color="primary"
       dark
     >
-      <div class="d-flex align-center">
-        <v-img
-          alt="Vuetify Logo"
-          class="shrink mr-2"
-          contain
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-logo-dark.png"
-          transition="scale-transition"
-          width="40"
-        />
-
-        <v-img
-          alt="Vuetify Name"
-          class="shrink mt-1 hidden-sm-and-down"
-          contain
-          min-width="100"
-          src="https://cdn.vuetifyjs.com/images/logos/vuetify-name-dark.png"
-          width="100"
-        />
-      </div>
-
-      <v-spacer></v-spacer>
-
-      <v-btn
-        href="https://github.com/vuetifyjs/vuetify/releases/latest"
-        target="_blank"
-        text
-      >
-        <span class="mr-2">Latest Release</span>
-        <v-icon>mdi-open-in-new</v-icon>
-      </v-btn>
+      
     </v-app-bar>
 
-    <v-main>
-      <HelloWorld/>
+    <v-main class="fill-height">
+      <div class="fill-height d-flex">
+        <!-- 聊天窗口 -->
+        <Chat class="fill-height flex-grow-0 flex-shrink-0"/>
+
+        <v-divider vertical/>
+        <!-- 副面板 -->
+        <InvInfo class="fill-height flex-grow-1"/>
+      </div>
     </v-main>
   </v-app>
 </template>
 
 <script>
-import HelloWorld from './components/HelloWorld';
+import InvInfo from './components/InvInfo';
+import Chat from './components/Chat';
 
 export default {
   name: 'App',
 
   components: {
-    HelloWorld,
+    InvInfo,
+    Chat,
   },
 
   data: () => ({
@@ -58,3 +38,18 @@ export default {
   }),
 };
 </script>
+
+<style>
+.fill, html, body {
+  width: 100%;
+  height: 100%;
+}
+
+.fill-height {
+  height: 100%;
+}
+
+.overflow-auto {
+  overflow: auto;
+}
+</style>

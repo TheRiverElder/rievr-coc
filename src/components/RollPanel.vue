@@ -28,7 +28,7 @@
         </div>
 
         <div class="pa-2 flex-grow-1 d-flex justify-center align-center">
-            <span class="text-h3">{{ times }} D {{ faces }} {{ (fix >= 0) ? '+' + fix : fix }} = {{ result }}</span>
+            <span class="text-h3">{{ times }} D {{ faces }} {{ (fix >= 0) ? '+' + fix : fix }} = {{ result === null ? '?' : result }}</span>
         </div>
     </div>
 </template>
@@ -42,7 +42,7 @@ export default {
             times: 1,
             faces: 100,
             fix: 0,
-            result: 0,
+            result: null,
         };
     },
 

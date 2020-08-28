@@ -50,6 +50,7 @@ function createNewGroup() {
 class Game extends EventEmitter {
     
     constructor() {
+        super();
         this.group = loadGroup() || createNewGroup();
     }
 
@@ -61,6 +62,9 @@ class Game extends EventEmitter {
      * @returns {Boolean} 若更新成功则返回true，否则返回false
      */
     update(source, uuid, pack) {
+        if (!uuid) {
+            this.group.inv[uuid] = new Inv({});
+        }
         const inv = this.group.invs[uuid];
         if (inv) {
             if (pack.baseInfo) {
@@ -100,4 +104,4 @@ class Game extends EventEmitter {
 
 const game = new Game();
 
-exports = game;
+module.exports = game;

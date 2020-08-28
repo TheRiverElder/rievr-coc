@@ -1,7 +1,6 @@
 const fs = require('fs');
 const express = require('express');
 const expressWs = require('express-ws');
-const expressWs = require('express-ws');
 const game = require('./data-manager.js');
 
 // const STATE_WAITING_TOKEN = 1;
@@ -83,7 +82,7 @@ server.addListener('close', () => console.log('Server close'));
 
 //#region 注册游戏事件
 
-game.addListener('update', (source, group, data) => broadcast(data));
+game.addListener('update', (source, group, data) => broadcast(Object.assign({type: 'update'}, data)));
 
 game.addListener('message', (source, group, message) => broadcast(message));
 
@@ -152,11 +151,14 @@ function cleanClientSocket(socket, token) {
  */
 function handleMessage(msg, token, socket) {
     console.log('Receive', token + ': ' + msg);
-    const message = JSON.parse(msg);
+    const pack = JSON.parse(msg);
     if (pack.type === 'chat') {
-        game.appendMessage(token, message);
+        game.appendMessage(token, pack);
         reply(socket, pack.id, true);
-    } else {
+    } else if (pack.type === 'update') {
+        game.update(token, pack);
+        reply(socket, pack.id, true);
+    } {
         reply(socket, pack.id, 'Unknown action id: ' + pack.id);
     }
 }

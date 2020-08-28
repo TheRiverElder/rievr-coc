@@ -1,6 +1,6 @@
 const { v4 } = require('uuid');
 
-exports = class Group {
+class Group {
     constructor({
         name = '',
         id = v4(),
@@ -22,3 +22,5 @@ exports = class Group {
         this.messages = messages;
     }
 }
+
+module.exports = Group;

@@ -36,6 +36,8 @@ export default new Vuex.Store({
 		// 缓存的人物卡
 		invs: {},
 
+		valueInfos: {'111111': {name: '力量'}, '2222': {name: '幸运'}},
+
 		selfId: SELF_ID,
 
 		groupInfo: {
@@ -51,11 +53,29 @@ export default new Vuex.Store({
 		onMessageHandlers: new Set(),
 
 		hasLogin: false,
+
+		bus: new Vue(),
 	},
 
 	getters: {
 		self(state) {
-			return state.invs[state.selfId];
+			let invInfo = state.invs[state.selfId];
+			if (!invInfo) {
+				invInfo = {
+					name: '张三',
+					age: 20,
+					avatar: null,
+					nationality: '天朝',
+					story: '',
+					values: Object.entries(state.valueInfos).reduce((prev, [vid, {val, max}]) => {
+						prev[vid] = {val: val|| 0, max: max || 100};
+						return prev;
+					}, {}),
+					inventory: [],
+				};
+				state.invs[state.selfId] = invInfo;
+			}
+			return invInfo;
 		},
 	},
 	
@@ -85,16 +105,6 @@ export default new Vuex.Store({
 			state.messages.push(message);
 		},
 
-		// 添加消息监听器
-		addMessageHandler(state, handler) {
-			state.onMessageHandlers.add(handler);
-		},
-
-		// 移除消息监听器
-		removeMessageHandler(state, handler) {
-			state.onMessageHandlers.delete(handler);
-		},
-
 		// 添加新的聊天消息
 		appendMessage(state, message) {
 			if (!state.invs[message.sender]) {
@@ -103,7 +113,7 @@ export default new Vuex.Store({
 			if (message.sender !== state.selfId) {
 				state.messages.push(message);
 			}
-			[...state.onMessageHandlers].forEach(handler => handler(message));
+			state.bus.$emit('message', message);
 		},
 
 		// 添加自己发送但是还未到达服务器的聊天消息
@@ -111,11 +121,11 @@ export default new Vuex.Store({
 			if (!state.invs[message.sender]) {
 				state.invs[message.sender] = {name: genName(message.sender), avatar: ''};
 			}
-			[...state.onMessageHandlers].forEach(handler => handler(message));
+			state.bus.$emit('message', message);
 		},
 
-		// 处理回执
-		handleReply(state, pack) {
+		// 确认消息已经被服务器接收
+		confirmMessage(state, pack) {
 			const id = pack.id;
 			const index = state.messages.findIndex(msg => msg.id === id);
 			if (index >= 0) {
@@ -127,6 +137,31 @@ export default new Vuex.Store({
 				}
 			}
 		},
+
+		// 处理回执
+		handleReply(state, pack) {
+			state.bus.$emit('reply', pack);
+		},
+
+		handleUpdate(state, {uuid, baseInfo = {}, values = {}, inventory = []}) {
+			if (!state.invs[uuid]) {
+				state.invs[uuid] = {
+					name: genName(uuid),
+					values: {},
+					inventory: [],
+				};
+			}
+			const inv = state.inv[uuid];
+			if (baseInfo) {
+				Object.assign(inv, baseInfo);
+			}
+			if (values) {
+				Object.assign(inv.values, values);
+			}
+			if (inventory) {
+				inv.inventory = inventory;
+			}
+		}
 	},
 	
 	actions: {
@@ -160,7 +195,8 @@ export default new Vuex.Store({
 							type: 'chat',
 							text: pack.text,
 							sender: pack.sender,
-						}); break
+						}); break;
+						case 'update': commit('handleUpdate', pack); break;
 						case 'reply': commit('handleReply', pack); break;
 					}
 				});

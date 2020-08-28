@@ -1,5 +1,5 @@
 <template>
-	<div class="fill-height d-flex flex-column">
+	<div class="chat fill-height d-flex flex-column grey lighten-4">
 		<div class="msg-list flex-grow-1" ref="msgList">
 			<Message
 				class="my-2"
@@ -15,7 +15,7 @@
 			<div class="anchor" ref="anchor"></div>
 		</div>
 
-		<div class="text-input flex-shrink-0 d-flex ma-2">
+		<div class="text-input flex-shrink-0 d-flex ma-0 pa-2 white">
 			<v-textarea
 				dense
 				hide-details
@@ -45,6 +45,7 @@ export default {
 		return {
 			inputText: '',
 			onMessageHandler: () => this.$nextTick(() => this.scrollToButtom()),
+			onReplyHandler: (pack) => this.confirmMessage(pack),
 		};
 	},
 
@@ -58,7 +59,7 @@ export default {
 	},
 
 	methods: {
-		...mapMutations(['appendMessage', 'sendMessage']),
+		...mapMutations(['appendMessage', 'sendMessage', 'confirmMessage']),
 
 		...mapActions(['connectServer']),
 
@@ -84,17 +85,25 @@ export default {
 	},
 
 	created() {
-		this.connectServer();
-		this.$store.commit('addMessageHandler', this.onMessageHandler);
+		//this.connectServer();
+		this.$store.state.bus.$on('message', this.onMessageHandler);
+		this.$store.state.bus.$on('reply', this.onReplyHandler);
 	},
 
 	beforeDestroy() {
-		this.$store.commit('removeMessageHandler', this.onMessageHandler);
+		this.$store.state.bus.$off('message', this.onMessageHandler);
+		this.$store.state.bus.$off('reply', this.onReplyHandler);
 	},
 }
 </script>
 
 <style scoped>
+.chat {
+	width: 100%;
+	max-width: 24em;
+	background-color: ;
+}
+
 .msg-list {
 	overflow-x: hidden;
 	overflow-y: auto;

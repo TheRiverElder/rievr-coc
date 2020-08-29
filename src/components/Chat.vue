@@ -6,7 +6,6 @@
 				v-for="(msg, index) of messages"
 				:key="index"
 				:type="msg.type"
-				:waiting="!!msg.id"
 				:text="msg.text"
 				:sender="msg.sender"
 				:err="msg.err"
@@ -36,7 +35,7 @@
 <script>
 import Message from '@/components/Message.vue'
 
-import { mapState, mapMutations, mapGetters, mapActions } from 'vuex';
+import { mapState, mapGetters, mapActions } from 'vuex';
 
 export default {
 	name: 'Chat',
@@ -45,7 +44,7 @@ export default {
 		return {
 			inputText: '',
 			onMessageHandler: () => this.$nextTick(() => this.scrollToButtom()),
-			onReplyHandler: (pack) => this.confirmMessage(pack),
+			onUpdatehandler: this.$forceUpdate.bind(this),
 		};
 	},
 
@@ -59,9 +58,7 @@ export default {
 	},
 
 	methods: {
-		...mapMutations(['appendMessage', 'sendMessage', 'confirmMessage']),
-
-		...mapActions(['connectServer']),
+		...mapActions(['connectServer', 'sendMessage']),
 
 		handleInputKey(event) {
 			if (event.key === 'Enter') {
@@ -80,19 +77,27 @@ export default {
 
 		scrollToButtom() {
 			const el = this.$refs.msgList;
-			el.scrollTop = el.scrollHeight;
+			if (el.scrollTo) {
+				el.scrollTo({
+					top: el.scrollHeight,
+					left: 0,
+					behavior: 'smooth'
+				});
+			} else {
+				el.scrollTop = el.scrollHeight;
+			}
 		},
 	},
 
 	created() {
-		//this.connectServer();
+		this.connectServer();
 		this.$store.state.bus.$on('message', this.onMessageHandler);
-		this.$store.state.bus.$on('reply', this.onReplyHandler);
+		this.$store.state.bus.$on('update', this.onUpdatehandler);
 	},
 
 	beforeDestroy() {
 		this.$store.state.bus.$off('message', this.onMessageHandler);
-		this.$store.state.bus.$off('reply', this.onReplyHandler);
+		this.$store.state.bus.$off('update', this.onUpdatehandler);
 	},
 }
 </script>

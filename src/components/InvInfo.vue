@@ -1,5 +1,5 @@
 <template>
-    <div class="inv-info overflow-auto pa-5">
+    <div class="inv-info pa-5">
 
         <h1>调查员信息卡</h1>
 
@@ -103,7 +103,7 @@
         <!-- 物品 -->
 
         <!-- 确认按钮 -->
-        <v-btn block>Commit</v-btn>
+        <v-btn block @click="commitInvInfo">Commit</v-btn>
     </div>
 </template>
 
@@ -120,6 +120,7 @@ export default {
             nationality: '天朝',
             story: '',
             values: {},
+            inventory: [],
         };
     },
 
@@ -128,6 +129,20 @@ export default {
     },
 
     methods: {
+
+        commitInvInfo() {
+            this.$store.dispatch('commitInvInfo', {
+                uuid: this.$store.state.selfId, 
+                name: this.name,
+                age: this.age,
+                avatar: this.avatar,
+                nationality: this.nationality,
+                story: this.story,
+                values: this.values,
+                inventory: this.inventory,
+            });
+        },
+
         getFileUrl(file) {
             return file ? URL.createObjectURL(file) : null;
         },

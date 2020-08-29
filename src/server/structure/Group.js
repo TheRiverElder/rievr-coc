@@ -3,7 +3,7 @@ const { v4 } = require('uuid');
 class Group {
     constructor({
         name = '',
-        id = v4(),
+        uuid = v4(),
         invs = {},
         items = {},
         valueInfos = {},
@@ -11,7 +11,7 @@ class Group {
         messages = [],
     }) {
         this.name = name;
-        this.id = id;
+        this.uuid = uuid;
         this.invs = {};
         Object.entries(invs).forEach(([uuid, d]) => invs[uuid] = new Inv(d));
         this.items = {};

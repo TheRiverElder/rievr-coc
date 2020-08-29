@@ -12,10 +12,10 @@
         <!-- 正文 -->
         <div class="middle px-2 flex-grow-0 flex-shrink-1 d-flex flex-column">
             <!-- 发送者名称 -->
-            <p class="name mb-2">{{ senderName }}</p>
+            <p class="name mb-1">{{ senderName }}</p>
             
             <!-- 消息正文 -->
-            <v-card class="text pa-2">
+            <v-card class="text py-1 px-2">
                 <span>{{ text }}</span>
 
                 <p 
@@ -24,20 +24,10 @@
                 >{{ err }}</p>
             </v-card>
         </div>
-
-        <div class="loading-icon flex-shrink-0 align-self-end ma-2">
-            <!-- 载入图标 -->
-            <v-progress-circular
-                v-if="waiting"
-                indeterminate
-                size="20"
-                color="grey"
-            />
-        </div>
 	</div>
 
     <div v-else class="text-center">
-        <v-chip>{{ text }}</v-chip>
+        <v-chip text-color="white" small>{{ text }}</v-chip>
     </div>
 </template>
 
@@ -49,7 +39,6 @@ export default {
 
     props: {
         type: String,
-        waiting: Boolean,
         text: String,
         sender: String,
         err: String,
@@ -93,11 +82,17 @@ export default {
 
     .middle {
         align-items: flex-start;
+        text-align: left;
     }
 }
 
 .from-self {
     flex-direction: row-reverse;
+
+    .middle {
+        align-items: flex-end;
+        text-align: right;
+    }
 }
 
 .text {

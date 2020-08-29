@@ -3,31 +3,12 @@ import Vuex from 'vuex'
 import axios from 'axios'
 import { v4 as gen } from 'uuid'
 
+import { isMobile } from '@/utils/device.js'
+
+
 Vue.use(Vuex);
 
-const SELF_ID = gen();
 
-function isMobile() {
-	const MOBILES = ["Android", "iPhone", "SymbianOS", "Windows Phone", "iPad", "iPod"];
-	const ua = navigator.userAgent;
-	return MOBILES.some(m => ua.indexOf(m) >= 0);
-}
-
-
-const CHINESE_NUMBERS = '〇幺贰叁肆伍陆柒捌玖';
-const CHINESE_LETTERS = '阿波可德俄夫哥合伊基克勒莫恩欧派科日斯特吴福伍士易兹';
-function genName(id = '000') {
-	return id.slice(-3).split('').map(e => {
-		let index = Number(e);
-		if (!isNaN(index)) {
-			return CHINESE_NUMBERS[index];
-		} else {
-			e = e.toUpperCase();
-			index = e.codePointAt(0) - 'A'.codePointAt(0);
-			return (index >= 0 && index < CHINESE_LETTERS.length) ? CHINESE_NUMBERS[index] : e;
-		}
-	}).join('');
-}
 
 export default new Vuex.Store({
 	state: {
@@ -38,7 +19,7 @@ export default new Vuex.Store({
 
 		valueInfos: {'111111': {name: '力量'}, '2222': {name: '幸运'}},
 
-		selfId: SELF_ID,
+		selfId: gen(),
 
 		groupInfo: {
 			name: '米勒山庄之巨石阵'
@@ -81,143 +62,105 @@ export default new Vuex.Store({
 	
 	mutations: {
 
-		// 发送消息
-		sendMessage(state, text) {
-			const message = {
-				id: gen(),
-				type: 'chat',
-				text: text,
-				sender: state.selfId,
-				err: null,
-			};
-			if (!state.invs[state.selfId]) {
-				state.invs[state.selfId] = {name: genName(state.selfId), avatar: ''};
-			}
-			if (state.socket) {
-				state.socket.send(JSON.stringify({
-					type: 'chat',
-					id: message.id,
-					text,
-				}));
+		// 单纯的添加消息，若已存在则更新
+		
+
+		// 更新人物卡
+		update(state, pack) {
+			if (!state.invs[pack.uuid]) {
+				state.invs[pack.uuid] = pack;
 			} else {
-				message.err = 'Network fail';
+				Object.assign(state.invs[pack.uuid], pack);
 			}
-			state.messages.push(message);
+			state.bus.$emit('update', pack);
 		},
-
-		// 添加新的聊天消息
-		appendMessage(state, message) {
-			if (!state.invs[message.sender]) {
-				state.invs[message.sender] = {name: genName(message.sender), avatar: ''};
-			}
-			if (message.sender !== state.selfId) {
-				state.messages.push(message);
-			}
-			state.bus.$emit('message', message);
-		},
-
-		// 添加自己发送但是还未到达服务器的聊天消息
-		appendUncheckedMessage(state, message) {
-			if (!state.invs[message.sender]) {
-				state.invs[message.sender] = {name: genName(message.sender), avatar: ''};
-			}
-			state.bus.$emit('message', message);
-		},
-
-		// 确认消息已经被服务器接收
-		confirmMessage(state, pack) {
-			const id = pack.id;
-			const index = state.messages.findIndex(msg => msg.id === id);
-			if (index >= 0) {
-				const message = state.messages[index];
-				if (pack.success) {
-					message.id = undefined;
-				} else {
-					message.err = pack.err;
-				}
-			}
-		},
-
-		// 处理回执
-		handleReply(state, pack) {
-			state.bus.$emit('reply', pack);
-		},
-
-		handleUpdate(state, {uuid, baseInfo = {}, values = {}, inventory = []}) {
-			if (!state.invs[uuid]) {
-				state.invs[uuid] = {
-					name: genName(uuid),
-					values: {},
-					inventory: [],
-				};
-			}
-			const inv = state.inv[uuid];
-			if (baseInfo) {
-				Object.assign(inv, baseInfo);
-			}
-			if (values) {
-				Object.assign(inv.values, values);
-			}
-			if (inventory) {
-				inv.inventory = inventory;
-			}
-		}
 	},
 	
 	actions: {
 
 		// 连接至WebSocket服务器
-		connectServer({state, commit/*, dispatch*/}) {
-			if (!state.socket) {
-				const token = new URLSearchParams(window.location.search).get('token');
-				axios.get(window.location.hostname + ':8001', token);
-				
-				const socket = new WebSocket('ws://' + window.location.hostname + ':8001/chat/' + state.selfId);
+		connectServer({state, dispatch}) {
+			if (state.socket) {
+				console.log('A WebSocket already exists');
+				return;
+			} 
+			const token = new URLSearchParams(window.location.search).get('token');
+			state.selfId = token;
+			axios.post(`http://${window.location.hostname}:8001/login`, {token}).then(() => {
+				const socket = new WebSocket(`ws://${window.location.hostname}:8001/chat?token=${state.selfId}`);
 
 				socket.addEventListener('open', event => {
-					state.socket = socket;
-					commit('appendMessage', {
-						type: 'info',
-						text: 'Connection opened',
-					});
-					// if (state.connectionCyclePid !== null) {
-					// 	clearInterval(state.connectionCyclePid);
-					// 	state.connectionCyclePid = null;
-					// }
-					console.debug('WebSocket open', event);
+						state.socket = socket;
+						dispatch('appendMessage', {
+							type: 'info',
+							text: '服务器已连接',
+						});
+						console.debug('WebSocket open', event);
 				});
 				
 				socket.addEventListener('message', event => {
-					console.debug('WebSocket message', event);
 					const pack = JSON.parse(event.data);
+					console.debug('WebSocket message', pack);
 					switch (pack.type) {
-						case 'chat': commit('appendMessage', {
-							type: 'chat',
-							text: pack.text,
-							sender: pack.sender,
-						}); break;
-						case 'update': commit('handleUpdate', pack); break;
-						case 'reply': commit('handleReply', pack); break;
+						case 'chat': dispatch('appendMessage', pack); break;
+						case 'update': dispatch('fetchInvInfo', pack.uuid); break;
+						case 'reply': state.bus.$emit('reply', pack); break;
 					}
 				});
 				
 				socket.addEventListener('close', event => {
 					state.socket = null;
-					commit('appendMessage', {
+					dispatch('appendMessage', {
 						type: 'info',
-						text: 'Connection closed',
+						text: '服务器已断开',
 					});
-					console.debug('WebSocket close', event)
-					// if (state.connectionCyclePid === null) {
-					// 	state.connectionCyclePid = setTimeout(() => {
-					// 		console.log('try connect');
-					// 		dispatch('connectServer');
-					// 	}, 1000);
-					// }
+					console.debug('WebSocket close', event);
 				});
+			}).catch(() => this.commit('appendMessage', {type: 'info', text: '身份验证失败'}));
+		},
+
+		// 添加消息
+		appendMessage({state, dispatch}, pack) {
+			const message = state.messages.find(e => e.clientId === pack.clientId && e.sender === state.selfId);
+			if (message) {
+				Object.assign(message, pack);
 			} else {
-				console.log('A WebSocket already exists');
+				state.messages.push(pack);
 			}
+			if (!state.invs[pack.sender]) {
+				dispatch('fetchInvInfo', pack.sender);
+			}
+		},
+
+		fetchInvInfo({commit}, uuid) {
+			axios.get(`http://${window.location.hostname}:8001/inv/${uuid}`)
+			.then(res => commit('update', res.data))
+			.catch(err => console.error(err));
+		},
+
+		commitInvInfo(store, invInfo) {
+			axios.put(`http://${window.location.hostname}:8001/inv/${invInfo.uuid}`, invInfo)
+			.then(() => console.debug('Inv updated', invInfo.uuid));
+		},
+
+
+		// 发送消息
+		sendMessage({state, dispatch}, text) {
+			const message = {
+				id: null, // 由服务器分配
+				clientId: gen(), // 由客户端分配
+				type: 'chat',
+				text: text,
+				sender: state.selfId,
+				time: Date.now(),
+				err: null,
+			};
+			if (state.socket) {
+				state.socket.send(JSON.stringify(message));
+			} else {
+				message.err = 'Network fail';
+			}
+			dispatch('appendMessage', message);
 		},
 	},
 

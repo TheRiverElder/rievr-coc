@@ -1,5 +1,6 @@
 const { EventEmitter } = require('events');
 const Group = require('./structure/Group.js');
+const Inv = require('./structure/Inv.js');
 
 
 // 使用持久化的数据恢复跑团数据
@@ -62,29 +63,17 @@ class Game extends EventEmitter {
      * @returns {Boolean} 若更新成功则返回true，否则返回false
      */
     update(source, uuid, pack) {
-        if (!uuid) {
-            this.group.inv[uuid] = new Inv({});
-        }
-        const inv = this.group.invs[uuid];
-        if (inv) {
-            if (pack.baseInfo) {
-                Object.assign(inv, inv.baseInfo);
-            }
-            if (pack.values) {
-                inv.values = pack.values;
-            }
-            if (pack.inventory) {
-                inv.inventory = pack.inventory;
-            }
-            this.emit('update', source, this.group, {
-                uuid,
-                baseInfo: pack.baseInfo,
-                values: pack.values,
-                inventory: pack.inventory,
-            });
+        let inv = this.group.invs[uuid];
+        if (!inv) {
+            inv = new Inv(pack);
+            this.group.invs[uuid] = inv;
+            this.emit('update', source, this.group, inv);
+            return true;
+        } else {
+            Object.assign(inv, pack);
+            this.emit('update', source, this.group, pack);
             return true;
         }
-        return false;
     }
 
     /**

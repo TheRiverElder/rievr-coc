@@ -1,7 +1,7 @@
 module.exports = class Inv {
     constructor({
         name = '',
-        id = v4(),
+        uuid = v4(),
 		nationality = '',
 		story = '',
 		avatar = null,
@@ -9,7 +9,7 @@ module.exports = class Inv {
 		inventory = [],
     }) {
         this.name = name;
-        this.id = id;
+        this.uuid = uuid;
         this.nationality = nationality;
         this.story = story;
         this.avatar = avatar;

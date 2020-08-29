@@ -1,7 +1,10 @@
 const fs = require('fs');
 const express = require('express');
 const expressWs = require('express-ws');
-const game = require('./data-manager.js');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
+const game = require('./game.js');
+const { v4 } = require('uuid');
 
 // const STATE_WAITING_TOKEN = 1;
 // const STATE_WAITING_PACK = 2;
@@ -22,24 +25,27 @@ const server = ewss.app;
 
 server.use(express.json());
 server.use(express.urlencoded({ extended: true }));
+server.use(cookieParser());
 
+server.all('*', cors());
+
+// 连接合法性验证
 server.use((req, res, next) => {
-    if (validateToken(req.cookies.token)) {
-        next();
-    } else if (req.method === 'get' && validateToken(req.body)) {
-        res.cookie('token', req.body, {maxAge: 60 * 60 * 24 * 2});
-        req.cookies.token = req.body;
+    if (
+        // req.cookies && validateToken(req.cookies.token) 
+        getToken(req)
+        || req.path === '/login') {
         next();
     } else {
-        res.end();
+        res.status(403).end();
     }
 });
 
 // 聊天室连接
-server.ws('/chat/', (socket, req) => {
-    const token = req.cookies.token;
+server.ws('/chat', (socket, req) => {
+    const token = getToken(req);
     console.log('WebSocket open', token);
-    if (!token || !validateToken(token)) {
+    if (!validateToken(token)) {
         console.warn('Invalid token', token);
         socket.send({type: 'error', err: 'Invalid token'});
         socket.close(-1, 'Invalid token: ' + token);
@@ -50,24 +56,50 @@ server.ws('/chat/', (socket, req) => {
 });
 
 
+// 获取验证
+const ipTokenMap = {};
+server.get('/login', (req, res) => {
+    const token = req.query.token;
+    console.log('Get', '/login', token);
+    if (validateToken(token)) {
+        console.log('valid token', token);
+        ipTokenMap[req.ip] = token;
+        res.cookie('token', token, {maxAge: 60 * 60 * 24 * 2});
+        res.send('valid token: ' + token);
+    }
+});
+server.post('/login', (req, res) => {
+    const token = req.body ? req.body.token : null;
+    console.log('Post', '/login', token);
+    if (validateToken(token)) {
+        console.log('valid token', token);
+        ipTokenMap[req.ip] = token;
+        res.cookie('token', token, {maxAge: 60 * 60 * 24 * 2});
+        res.send('valid token: ' + token);
+    }
+});
+
+
 // 获取人物卡
 server.get('/inv/:uuid', (req, res) => {
-    const uuid = req.params.uuid;
-    console.log('Get', '/inv/' + uuid);
-    const group = getCurrentGroup();
-    const inv = group.invs[uuid];
-    res.json(inv);
-    res.end();
+    const uuid = getToken(req);
+    console.log('Get', '/inv/', uuid);
+    const inv = game.group.invs[uuid];
+    if (inv) {
+        res.json(inv).end();
+    } else {
+        res.status(404).end();
+    }
 });
 
 // 修改人物卡
-server.put('/inv/:uuid', () => {
-    const source = req.cookies.token;
+server.put('/inv/:uuid', (req, res) => {
+    const source = getToken(req);
     const uuid = req.params.uuid;
-    console.log('Put', '/inv/' + uuid);
+    console.log('Put', '/inv/', uuid);
     const pack = req.body;
     if (!pack) {
-        res.end();
+        res.status(403).end();
         return;
     }
     game.update(source, uuid, pack);
@@ -82,7 +114,7 @@ server.addListener('close', () => console.log('Server close'));
 
 //#region 注册游戏事件
 
-game.addListener('update', (source, group, data) => broadcast(Object.assign({type: 'update'}, data)));
+game.addListener('update', (source, group, inv) => broadcast({type: 'update', uuid: inv.uuid}));
 
 game.addListener('message', (source, group, message) => broadcast(message));
 
@@ -93,6 +125,11 @@ server.listen(8001, () => console.log('Server start'));
 
 
 //#region 一些工具方法
+
+// 获取Token
+function getToken(req) {
+    return ipTokenMap[req.ip];
+}
 
 // 广播信息
 function broadcast(data) {
@@ -153,7 +190,15 @@ function handleMessage(msg, token, socket) {
     console.log('Receive', token + ': ' + msg);
     const pack = JSON.parse(msg);
     if (pack.type === 'chat') {
-        game.appendMessage(token, pack);
+        game.appendMessage(token, {
+            id: v4(),
+            clientId: pack.clientId,
+            type: 'chat',
+			text: pack.text,
+			sender: pack.sender,
+			time: Date.now(),
+            err: null,
+        });
         reply(socket, pack.id, true);
     } else if (pack.type === 'update') {
         game.update(token, pack);
@@ -164,9 +209,9 @@ function handleMessage(msg, token, socket) {
 }
 
 // 定时保存
-setInterval(() => {
-    fs.writeFile('./game.json', JSON.stringify(game.group), () => console.log(`${new Date()} 保存完毕`));
-}, 60 * 1000);
+// setInterval(() => {
+//     fs.writeFile('./game.json', JSON.stringify(game.group), () => console.log(`${new Date()} 保存完毕`));
+// }, 60 * 1000);
 
 //#endregion
 

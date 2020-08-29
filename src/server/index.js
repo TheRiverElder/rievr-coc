@@ -88,9 +88,19 @@ server.get('/inv/:uuid', (req, res) => {
     if (inv) {
         res.json(inv).end();
     } else {
-        res.status(404).end();
+        res.json(DEFAULT_INV).end();
     }
 });
+
+const DEFAULT_INV = {
+    name: '张三',
+    age: 20,
+    avatar: null,
+    nationality: '天朝',
+    story: '',
+    values: {},
+    inventory: [],
+};
 
 // 修改人物卡
 server.put('/inv/:uuid', (req, res) => {

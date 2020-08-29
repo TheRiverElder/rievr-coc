@@ -61,7 +61,7 @@
             </v-row>
 
             <v-row 
-                v-for="valueID of Object.keys(valueInfos)"
+                v-for="valueID of Object.keys(values)"
                 :key="valueID"
                 class="table-row-border text-center"
             >
@@ -108,7 +108,7 @@
 </template>
 
 <script>
-import { mapState } from 'vuex';
+import { mapState, mapActions } from 'vuex';
 export default {
     name: 'InvInfo',
 
@@ -121,6 +121,8 @@ export default {
             story: '',
             values: {},
             inventory: [],
+
+            onUpdateHandler: pack => this.fillWithInvInfo(pack),
         };
     },
 
@@ -129,6 +131,7 @@ export default {
     },
 
     methods: {
+        ...mapActions(['fetchInvInfo']),
 
         commitInvInfo() {
             this.$store.dispatch('commitInvInfo', {
@@ -147,15 +150,20 @@ export default {
             return file ? URL.createObjectURL(file) : null;
         },
 
-        fillWithInvInfo(id) {
-            const invInfo = id ? this.$store.state.invs[id] : this.$store.getters.self;
-            Object.assign(this, invInfo);
+        fillWithInvInfo(pack) {
+            // const invInfo = this.$store.state.invs[uuid];
+            Object.assign(this, pack);
         },
     },
 
     created() {
-        this.fillWithInvInfo();
+        this.$store.state.bus.$on('update', this.onUpdateHandler);
+        this.fetchInvInfo(this.$store.state.selfId);
     },
+
+    beforeDestroy() {
+        this.$store.state.bus.$off('update', this.onUpdateHandler);
+    }
 
 }
 </script>

@@ -47,6 +47,7 @@ export default {
     data() {
         return {
             msgClass: [ "d-flex", (this.sender === this.$store.state.selfId) ? "from-self" : "from-other", this.type ],
+            onUpdateHandler: () => this.$forceUpdate(),
         };
     },
 
@@ -68,6 +69,14 @@ export default {
             return this.type === 'chat';
         }
     },
+
+    created() {
+        this.$store.state.bus.$on(this.onUpdateHandler);
+    },
+
+    beforeDestroy() {
+        this.$store.state.bus.$off(this.onUpdateHandler);
+    }
 }
 </script>
 

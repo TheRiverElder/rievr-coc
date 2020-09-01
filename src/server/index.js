@@ -73,9 +73,10 @@ server.post('/login', (req, res) => {
 
 // 获取人物卡
 server.get('/inv/:uuid', (req, res) => {
-    const uuid = getToken(req);
-    console.log('Get', '/inv/', uuid);
-    const inv = game.group.invs[uuid];
+    const source = getToken(req);
+    const uuid = req.params.uuid;
+    console.log('Get', source, '/inv/', uuid);
+    const inv = game.group.getInv(uuid);
     if (inv) {
         res.json(purify(inv, 'group')).end();
     } else {
@@ -97,14 +98,14 @@ const DEFAULT_INV = {
 server.put('/inv/:uuid', (req, res) => {
     const source = getToken(req);
     const uuid = req.params.uuid;
-    console.log('Put', '/inv/', uuid);
+    console.log('Put', source,'/inv/', uuid);
     const pack = req.body;
     if (!pack) {
         res.status(403).end();
         return;
     }
     game.group.getInv(uuid, true).update(pack);
-    res.end();
+    res.send('Updated: ' + uuid).end();
 });
 
 

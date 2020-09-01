@@ -144,7 +144,7 @@ export default new Vuex.Store({
 
 		fetchInvInfo({commit}, uuid) {
 			axios.get(`http://${window.location.hostname}:8001/inv/${uuid}`)
-			.then(res => commit('update', res.data))
+			.then(res => commit('update', 'string' === typeof res.data ? JSON.parse(res.data) : res.data))
 			.catch(err => console.error(err));
 		},
 

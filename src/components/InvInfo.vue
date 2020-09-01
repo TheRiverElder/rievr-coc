@@ -112,6 +112,13 @@ import { mapState, mapActions } from 'vuex';
 export default {
     name: 'InvInfo',
 
+    props: {
+        amKP: {
+            type: Boolean,
+            default: false,
+        }
+    },
+
     data() {
         return {
             name: '张三',
@@ -152,7 +159,9 @@ export default {
 
         fillWithInvInfo(pack) {
             // const invInfo = this.$store.state.invs[uuid];
-            Object.assign(this, pack);
+            if (pack.uuid === this.selfId || this.amKP) {
+                Object.assign(this, pack);
+            }
         },
     },
 

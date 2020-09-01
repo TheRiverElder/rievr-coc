@@ -69,6 +69,7 @@ export default new Vuex.Store({
 				Object.assign(message, pack);
 			} else {
 				state.messages.push(pack);
+				state.bus.$emit('message', pack);
 			}
 		},
 		

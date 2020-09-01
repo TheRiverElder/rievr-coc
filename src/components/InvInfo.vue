@@ -61,7 +61,7 @@
             </v-row>
 
             <v-row 
-                v-for="valueID of Object.keys(values)"
+                v-for="valueID of Object.keys(valueInfos)"
                 :key="valueID"
                 class="table-row-border text-center"
             >
@@ -92,7 +92,7 @@
 
                 <v-col cols="5">
                     <v-btn-toggle dense>
-                        <v-btn small>投掷</v-btn>
+                        <v-btn small @click="commitCheck(valueID)">检定</v-btn>
                         <v-btn small>还原</v-btn>
                         <v-btn small>申请</v-btn>
                     </v-btn-toggle>
@@ -138,7 +138,7 @@ export default {
     },
 
     methods: {
-        ...mapActions(['fetchInvInfo']),
+        ...mapActions(['fetchInvInfo', 'commitCheck']),
 
         commitInvInfo() {
             this.$store.dispatch('commitInvInfo', {

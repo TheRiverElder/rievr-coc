@@ -15,7 +15,7 @@ class Group {
         this.uuid = uuid;
         this.invs = Object.entries(invs).reduce((invs, [uuid, d]) => (invs[uuid] = (new Inv(d)).bind(this), invs), {});
         this.items = Object.entries(items).reduce((items, [uuid, d]) => (items[uuid] = new Item(d), items), {});
-        this.valueInfos = Object.entries(valueInfos).reduce((vis, [vid, d]) => (vis[vid] = new ValueInfo(d), vis), {});
+        this.valueInfos = valueInfos;
         this.accountRefferences = accountRefferences;
         this.messages = messages;
 
@@ -34,7 +34,7 @@ class Group {
     ensureInvExist(uuid) {
         let inv = this.invs[uuid];
         if (!inv) {
-            inv = new Inv({uuid}).bind(this);
+            inv = new Inv({uuid}).bind(this).resetValues();
             this.invs[uuid] = inv;
         }
         return inv;

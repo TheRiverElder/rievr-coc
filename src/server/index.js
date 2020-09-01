@@ -76,7 +76,7 @@ server.get('/group-info', (req, res) => {
     const source = getToken(req);
     const uuid = req.params.uuid;
     console.log('Get', source, '/group/');
-    const info = purify(game.group, 'invs', 'items', 'accountRefferences');
+    const info = purify(game.group, 'game', 'invs', 'items', 'accountRefferences');
     info.invList = Object.keys(game.group.invs);
     res.json(info).end();
 });

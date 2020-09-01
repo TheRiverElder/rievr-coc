@@ -64,7 +64,7 @@ export default new Vuex.Store({
 
 		// 单纯的添加消息，若已存在则更新
 		pushOrUpdateMessage(state, pack) {
-			const message = state.messages.find(e => e.clientId === pack.clientId && e.sender === state.selfId);
+			const message = pack.clientId ? state.messages.find(e => e.clientId === pack.clientId && e.sender === state.selfId) : null;
 			if (message) {
 				Object.assign(message, pack);
 			} else {
@@ -95,9 +95,9 @@ export default new Vuex.Store({
 				state.selfId = token;
 				axios.post(`http://${window.location.hostname}:8001/login`, {token})
 				.then(() => dispatch('connectServer'))
+				.then(() => axios.get(`http://${window.location.hostname}:8001/group-info`)
+					.then(res => dispatch('initGroup', res.data)))
 				.catch(() => commit('appendMessage', {type: 'info', text: '身份验证失败'}));
-				axios.get(`http://${window.location.hostname}:8001/group-info`)
-				.then(res => dispatch('initGroup', res.data));
 			} else {
 				dispatch('connectServer');
 			}
@@ -106,15 +106,21 @@ export default new Vuex.Store({
 		initGroup({state, dispatch}, groupInfo) {
 			state.groupInfo.name = groupInfo.name;
 			state.groupInfo.uuid = groupInfo.uuid;
+			state.valueInfos = groupInfo.valueInfos;
 			groupInfo.invList.forEach(uuid => dispatch('fetchInvInfo', uuid));
 			state.messages.push(...groupInfo.messages);
 		},
 
 		// 连接至WebSocket服务器
-		connectServer({state, dispatch}) {
+		connectServer({state, dispatch}, closePrevConn = false) {
 			if (state.socket) {
-				console.log('A WebSocket already exists');
-				return;
+				if (closePrevConn) {
+					state.socket.close();
+					state.socket = null;
+				} else {
+					console.log('A WebSocket already exists');
+					return;
+				}
 			} 
 			
 			const socket = new WebSocket(`ws://${window.location.hostname}:8001/chat?token=${state.selfId}`);
@@ -199,7 +205,13 @@ export default new Vuex.Store({
 
 		// 申请检定
 		commitCheck({state}, valueId) {
-			axios.post(`http://${window.location.hostname}:8001/check/${state.selfId}/${valueId}`);
+			if (state.socket) {
+				state.socket.send(JSON.stringify({
+					type: 'check',
+					valueId,
+					hardness: 3,
+				}));
+			}
 		},
 	},
 

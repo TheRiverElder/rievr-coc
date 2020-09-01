@@ -95,6 +95,14 @@ class Inv {
     toJson() {
         return toJson(this, 'group');
     }
+
+    /**
+     * 重置数值
+     */
+    resetValues() {
+        this.values = Object.entries(this.group.valueInfos).reduce((p, [vid, vi]) => (p[vid] = {val: vi.val, max: vi.max}, p), {});
+        return this;
+    }
 }
 
 module.exports = Inv;

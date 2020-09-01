@@ -59,6 +59,7 @@ const Hardness = Object.freeze({
 });
 
 function roll(dice) {
+    console.log(dice);
     return randInt(100) + 1;
 }
 

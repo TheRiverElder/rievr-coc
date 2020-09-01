@@ -13,6 +13,16 @@ function loadGroup() {
 function createNewGroup() {
     return new Group({
         name: '新团子' + Date.now(),
+        valueInfos: {
+            str: {name: '力量', val: 50, max: 100},
+            int: {name: '智力', val: 50, max: 100},
+            pow: {name: '意志', val: 50, max: 100},
+            app: {name: '外貌', val: 50, max: 100},
+            siz: {name: '体型', val: 50, max: 100},
+            con: {name: '体质', val: 50, max: 100},
+            dex: {name: '敏捷', val: 50, max: 100},
+            edu: {name: '教育', val: 50, max: 100},
+        }
     });
 }
 

@@ -6,7 +6,7 @@
             color="indigo" 
             class="text-no-wrap ma-2"
         >
-            <span class="white--text">{{ senderName }}</span>
+            <span class="white--text">{{ senderName.slice(-2) }}</span>
         </v-avatar>
 
         <!-- 正文 -->

@@ -95,9 +95,18 @@ export default new Vuex.Store({
 				axios.post(`http://${window.location.hostname}:8001/login`, {token})
 				.then(() => dispatch('connectServer'))
 				.catch(() => commit('appendMessage', {type: 'info', text: '身份验证失败'}));
+				axios.get(`http://${window.location.hostname}:8001/group-info`)
+				.then(res => dispatch('initGroup', res.data));
 			} else {
-				dispatch('connectServer')
+				dispatch('connectServer');
 			}
+		},
+
+		initGroup({state, dispatch}, groupInfo) {
+			state.groupInfo.name = groupInfo.name;
+			state.groupInfo.uuid = groupInfo.uuid;
+			groupInfo.invList.forEach(uuid => dispatch('fetchInvInfo', uuid));
+			state.messages.push(...groupInfo.messages);
 		},
 
 		// 连接至WebSocket服务器
@@ -142,9 +151,14 @@ export default new Vuex.Store({
 			}
 		},
 
-		fetchInvInfo({commit}, uuid) {
+		fetchInvInfo({state, commit}, uuid) {
 			axios.get(`http://${window.location.hostname}:8001/inv/${uuid}`)
-			.then(res => commit('update', 'string' === typeof res.data ? JSON.parse(res.data) : res.data))
+			.then(res => {
+				const data = 'string' === typeof res.data ? JSON.parse(res.data) : res.data;
+				if (data.uuid === state.selfId) {
+					commit('update', data);
+				}
+			})
 			.catch(err => console.error(err));
 		},
 

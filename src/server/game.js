@@ -1,6 +1,6 @@
 const { EventEmitter } = require('events');
-const Group = require('./structure/Group.js');
-const Inv = require('./structure/Inv.js');
+const Group = require('./river-coc-core/Group.js');
+const Inv = require('./river-coc-core/Inv.js');
 
 
 // 使用持久化的数据恢复跑团数据
@@ -53,6 +53,7 @@ class Game extends EventEmitter {
     constructor() {
         super();
         this.group = loadGroup() || createNewGroup();
+        this.group.bind(this);
     }
 
     /**
@@ -88,6 +89,14 @@ class Game extends EventEmitter {
         return true;
     }
 
+    handlePack(senderUuid, pack) {
+        const sender = this.group.getInv(senderUuid, true);
+        switch(pack.type) {
+            case 'say': sender.say(pack.text, pack.clientId); break;
+            case 'check': sender.check(pack.valueId, pack.hardness); break;
+            case 'roll': sender.roll(pack.dice); break;
+        }
+    }
 
 }
 

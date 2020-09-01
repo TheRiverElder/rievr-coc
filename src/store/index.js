@@ -63,6 +63,14 @@ export default new Vuex.Store({
 	mutations: {
 
 		// 单纯的添加消息，若已存在则更新
+		pushOrUpdateMessage(state, pack) {
+			const message = state.messages.find(e => e.clientId === pack.clientId && e.sender === state.selfId);
+			if (message) {
+				Object.assign(message, pack);
+			} else {
+				state.messages.push(pack);
+			}
+		},
 		
 
 		// 更新人物卡
@@ -74,9 +82,23 @@ export default new Vuex.Store({
 			}
 			state.bus.$emit('update', pack);
 		},
+		
 	},
 	
 	actions: {
+
+		// 初始化
+		initialize({state, commit, dispatch}) {
+			const token = new URLSearchParams(window.location.search).get('token');
+			if (token) {
+				state.selfId = token;
+				axios.post(`http://${window.location.hostname}:8001/login`, {token})
+				.then(() => dispatch('connectServer'))
+				.catch(() => commit('appendMessage', {type: 'info', text: '身份验证失败'}));
+			} else {
+				dispatch('connectServer')
+			}
+		},
 
 		// 连接至WebSocket服务器
 		connectServer({state, dispatch}) {
@@ -84,49 +106,37 @@ export default new Vuex.Store({
 				console.log('A WebSocket already exists');
 				return;
 			} 
-			const token = new URLSearchParams(window.location.search).get('token');
-			state.selfId = token;
-			axios.post(`http://${window.location.hostname}:8001/login`, {token}).then(() => {
-				const socket = new WebSocket(`ws://${window.location.hostname}:8001/chat?token=${state.selfId}`);
+			
+			const socket = new WebSocket(`ws://${window.location.hostname}:8001/chat?token=${state.selfId}`);
 
-				socket.addEventListener('open', event => {
-						state.socket = socket;
-						dispatch('appendMessage', {
-							type: 'info',
-							text: '服务器已连接',
-						});
-						console.debug('WebSocket open', event);
-				});
-				
-				socket.addEventListener('message', event => {
-					const pack = JSON.parse(event.data);
-					console.debug('WebSocket message', pack);
-					switch (pack.type) {
-						case 'chat': dispatch('appendMessage', pack); break;
-						case 'update': dispatch('fetchInvInfo', pack.uuid); break;
-						case 'reply': state.bus.$emit('reply', pack); break;
-					}
-				});
-				
-				socket.addEventListener('close', event => {
-					state.socket = null;
+			socket.addEventListener('open', event => {
+					state.socket = socket;
 					dispatch('appendMessage', {
 						type: 'info',
-						text: '服务器已断开',
+						text: '服务器已连接',
 					});
-					console.debug('WebSocket close', event);
+					console.debug('WebSocket open', event);
+			});
+			
+			socket.addEventListener('message', event => {
+				const pack = JSON.parse(event.data);
+				console.debug('WebSocket message', pack);
+				dispatch('handlePack', pack);
+			});
+			
+			socket.addEventListener('close', event => {
+				state.socket = null;
+				dispatch('appendMessage', {
+					type: 'info',
+					text: '服务器已断开',
 				});
-			}).catch(() => this.commit('appendMessage', {type: 'info', text: '身份验证失败'}));
+				console.debug('WebSocket close', event);
+			});
 		},
 
 		// 添加消息
-		appendMessage({state, dispatch}, pack) {
-			const message = state.messages.find(e => e.clientId === pack.clientId && e.sender === state.selfId);
-			if (message) {
-				Object.assign(message, pack);
-			} else {
-				state.messages.push(pack);
-			}
+		appendMessage({state, commit, dispatch}, pack) {
+			commit('pushOrUpdateMessage', pack);
 			if (!state.invs[pack.sender]) {
 				dispatch('fetchInvInfo', pack.sender);
 			}
@@ -146,21 +156,40 @@ export default new Vuex.Store({
 
 		// 发送消息
 		sendMessage({state, dispatch}, text) {
+			const clientId = gen();
+			const pack = {
+				clientId,
+				type: 'say',
+				text,
+			};
 			const message = {
 				id: null, // 由服务器分配
-				clientId: gen(), // 由客户端分配
+				clientId, // 由客户端分配
 				type: 'chat',
-				text: text,
+				text,
 				sender: state.selfId,
 				time: Date.now(),
 				err: null,
 			};
 			if (state.socket) {
-				state.socket.send(JSON.stringify(message));
+				state.socket.send(JSON.stringify(pack));
 			} else {
 				message.err = 'Network fail';
 			}
 			dispatch('appendMessage', message);
+		},
+
+		// 处理服务器发来的消息
+		handlePack({dispatch}, pack) {
+			switch(pack.type) {
+				case 'message': dispatch('appendMessage', pack.message); break;
+				case 'update': dispatch('fetchInvInfo', pack.uuid); break;
+			}
+		},
+
+		// 申请检定
+		commitCheck({state}, valueId) {
+			axios.post(`http://${window.location.hostname}:8001/check/${state.selfId}/${valueId}`);
 		},
 	},
 

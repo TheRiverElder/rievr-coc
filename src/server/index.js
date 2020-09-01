@@ -5,6 +5,7 @@ const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const game = require('./game.js');
 const { v4 } = require('uuid');
+const { purify } = require('../utils/objects.js');
 
 // const STATE_WAITING_TOKEN = 1;
 // const STATE_WAITING_PACK = 2;
@@ -61,22 +62,12 @@ const ipTokenMap = {};
 server.get('/login', (req, res) => {
     const token = req.query.token;
     console.log('Get', '/login', token);
-    if (validateToken(token)) {
-        console.log('valid token', token);
-        ipTokenMap[req.ip] = token;
-        res.cookie('token', token, {maxAge: 60 * 60 * 24 * 2});
-        res.send('valid token: ' + token);
-    }
+    login(req, res, token);
 });
 server.post('/login', (req, res) => {
     const token = req.body ? req.body.token : null;
     console.log('Post', '/login', token);
-    if (validateToken(token)) {
-        console.log('valid token', token);
-        ipTokenMap[req.ip] = token;
-        res.cookie('token', token, {maxAge: 60 * 60 * 24 * 2});
-        res.send('valid token: ' + token);
-    }
+    login(req, res, token);
 });
 
 
@@ -86,7 +77,7 @@ server.get('/inv/:uuid', (req, res) => {
     console.log('Get', '/inv/', uuid);
     const inv = game.group.invs[uuid];
     if (inv) {
-        res.json(inv).end();
+        res.json(purify(inv, 'group')).end();
     } else {
         res.json(DEFAULT_INV).end();
     }
@@ -112,7 +103,7 @@ server.put('/inv/:uuid', (req, res) => {
         res.status(403).end();
         return;
     }
-    game.update(source, uuid, pack);
+    game.group.getInv(uuid, true).update(pack);
     res.end();
 });
 
@@ -124,9 +115,8 @@ server.addListener('close', () => console.log('Server close'));
 
 //#region 注册游戏事件
 
-game.addListener('update', (source, group, inv) => broadcast({type: 'update', uuid: inv.uuid}));
-
-game.addListener('message', (source, group, message) => broadcast(message));
+game.addListener('message', (group, source, message) => broadcast({type: 'message', message}));
+game.addListener('update', (group, source) => broadcast({type: 'update', uuid: source}));
 
 //#endregion
 
@@ -135,6 +125,18 @@ server.listen(8001, () => console.log('Server start'));
 
 
 //#region 一些工具方法
+
+function login(req, res, token) {
+    if (validateToken(token)) {
+        console.log('Login succeeded', token);
+        ipTokenMap[req.ip] = token;
+        game.group.ensureInvExist(token);
+        res.cookie('token', token, {maxAge: 60 * 60 * 24 * 2});
+        res.send('Login succeeded: ' + token);
+    } else {
+        console.log('Login failed', token);
+    }
+}
 
 // 获取Token
 function getToken(req) {
@@ -199,23 +201,7 @@ function cleanClientSocket(socket, token) {
 function handleMessage(msg, token, socket) {
     console.log('Receive', token + ': ' + msg);
     const pack = JSON.parse(msg);
-    if (pack.type === 'chat') {
-        game.appendMessage(token, {
-            id: v4(),
-            clientId: pack.clientId,
-            type: 'chat',
-			text: pack.text,
-			sender: pack.sender,
-			time: Date.now(),
-            err: null,
-        });
-        reply(socket, pack.id, true);
-    } else if (pack.type === 'update') {
-        game.update(token, pack);
-        reply(socket, pack.id, true);
-    } {
-        reply(socket, pack.id, 'Unknown action id: ' + pack.id);
-    }
+    game.handlePack(token, pack);
 }
 
 // 定时保存

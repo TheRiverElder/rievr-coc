@@ -58,7 +58,7 @@ export default {
 	},
 
 	methods: {
-		...mapActions(['connectServer', 'sendMessage']),
+		...mapActions(['initialize', 'sendMessage']),
 
 		handleInputKey(event) {
 			if (event.key === 'Enter') {
@@ -90,7 +90,7 @@ export default {
 	},
 
 	created() {
-		this.connectServer();
+		this.initialize();
 		this.$store.state.bus.$on('message', this.onMessageHandler);
 		this.$store.state.bus.$on('update', this.onUpdatehandler);
 	},

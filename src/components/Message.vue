@@ -3,10 +3,11 @@
         <!-- 其他人头像 -->
         <v-avatar 
             size="36"
-            color="indigo" 
+            :color="senderAvatar ? 'transparent' : 'indigo'" 
             class="text-no-wrap ma-2"
         >
-            <span class="white--text">{{ senderName.slice(-2) }}</span>
+            <v-img v-if="senderAvatar" :src="senderAvatar"/>
+            <span v-else class="white--text">{{ senderName.slice(-2) }}</span>
         </v-avatar>
 
         <!-- 正文 -->
@@ -49,8 +50,7 @@ export default {
             msgClass: [ "d-flex", (this.sender === this.$store.state.selfId) ? "from-self" : "from-other", this.type ],
             onUpdateHandler: (pack) => {
                 if (pack.id === this.sender) {
-                    this.update();
-                    console.log('message view updated', pack);
+                    this.update(pack);
                 }
             },
 
@@ -68,8 +68,11 @@ export default {
     },
 
     methods: {
-        update() {
-            const inv = this.invs[this.sender];
+        update(inv) {
+            inv = inv || this.invs[this.sender] || {
+                name: '无名氏',
+                avatar: null,
+            };
             this.senderName = inv.name;
             this.senderAvatar = inv.avatar;
         },

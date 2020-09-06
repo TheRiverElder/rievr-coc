@@ -38,13 +38,14 @@
                 <v-avatar
                     size="160"
                 >
-                    <v-img :src="getFileUrl(avatar)"/>
+                    <v-img :src="avatar"/>
                 </v-avatar>
 
                 <v-file-input 
                     class="avatar"
                     label="头像"
-                    v-model="avatar"
+                    @input="setAvatar($event)"
+                    @change="setAvatar($event)"
                 />
             </div>
         </div>
@@ -66,7 +67,7 @@
                 class="table-row-border text-center"
             >
                 <!-- 数值名 -->
-                <v-col cols="2">{{ valueInfos[value.id].name }}</v-col>
+                <v-col cols="2">{{ getValueName(value.id) }}</v-col>
                 <!-- 数值 -->
                 <v-col cols="3">
                     <input 
@@ -153,8 +154,13 @@ export default {
             });
         },
 
-        getFileUrl(file) {
-            return file ? URL.createObjectURL(file) : null;
+        setAvatar(file) {
+            console.log('setAvatar', file);
+            const reader = new FileReader();
+            reader.onload = () => {
+                this.avatar = reader.result;
+            };
+            reader.readAsDataURL(file);
         },
 
         fillWithInvInfo(pack) {
@@ -163,6 +169,11 @@ export default {
                 Object.assign(this, pack);
             }
         },
+
+        getValueName(valueId) {
+            const valueInfo = this.valueInfos[valueId];
+            return valueInfo ? valueInfo.name : '未知数值';
+        }
     },
 
     created() {

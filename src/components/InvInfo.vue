@@ -61,20 +61,20 @@
             </v-row>
 
             <v-row 
-                v-for="valueID of Object.keys(valueInfos)"
-                :key="valueID"
+                v-for="value of values"
+                :key="value.id"
                 class="table-row-border text-center"
             >
                 <!-- 数值名 -->
-                <v-col cols="2">{{ valueInfos[valueID].name }}</v-col>
+                <v-col cols="2">{{ valueInfos[value.id].name }}</v-col>
                 <!-- 数值 -->
                 <v-col cols="3">
                     <input 
                         type="number" 
                         min="0"
                         class="text-right"
-                        :max="values[valueID].max" 
-                        v-model.number="values[valueID].val"
+                        :max="value.max" 
+                        v-model.number="value.val"
                     />
                     <span>/</span>
                     <!-- 最大值 -->
@@ -82,13 +82,13 @@
                         type="number" 
                         class="text-left"
                         min="0"
-                        v-model.number="values[valueID].max"
+                        v-model.number="value.max"
                     />
                 </v-col>
                 <!-- 困难值 -->
-                <v-col cols="1">{{ Math.floor(values[valueID].val / 2) }}</v-col>
+                <v-col cols="1">{{ Math.floor(value.val / 2) }}</v-col>
                 <!-- 极难值 -->
-                <v-col cols="1">{{ Math.floor(values[valueID].val / 5) }}</v-col>
+                <v-col cols="1">{{ Math.floor(value.val / 5) }}</v-col>
 
                 <v-col cols="5">
                     <v-btn-toggle dense>
@@ -126,7 +126,7 @@ export default {
             avatar: null,
             nationality: '天朝',
             story: '',
-            values: {},
+            values: [],
             inventory: [],
 
             onUpdateHandler: pack => this.fillWithInvInfo(pack),
@@ -142,7 +142,7 @@ export default {
 
         commitInvInfo() {
             this.$store.dispatch('commitInvInfo', {
-                uuid: this.$store.state.selfId, 
+                id: this.$store.state.selfId, 
                 name: this.name,
                 age: this.age,
                 avatar: this.avatar,
@@ -158,8 +158,8 @@ export default {
         },
 
         fillWithInvInfo(pack) {
-            // const invInfo = this.$store.state.invs[uuid];
-            if (pack.uuid === this.selfId || this.amKP) {
+            // const invInfo = this.$store.state.invs[id];
+            if (pack.id === this.selfId || this.amKP) {
                 Object.assign(this, pack);
             }
         },

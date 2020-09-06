@@ -47,35 +47,41 @@ export default {
     data() {
         return {
             msgClass: [ "d-flex", (this.sender === this.$store.state.selfId) ? "from-self" : "from-other", this.type ],
-            onUpdateHandler: () => this.$forceUpdate(),
+            onUpdateHandler: (pack) => {
+                if (pack.id === this.sender) {
+                    this.update();
+                    console.log('message view updated', pack);
+                }
+            },
+
+            senderName: null,
+            senderAvatar: null,
         };
     },
 
     computed: {
         ...mapState(['invs', 'selfId']),
 
-        // 获取发送者的昵称
-        senderName() {
-            const inv = this.invs[this.sender];
-            return inv ? inv.name : '无名氏';
-        },
-
-        // 获取发送者的头像
-        senderAvatar() {
-            return this.invs[this.sender].avatar;
-        },
-
         isChat() {
             return this.type === 'chat';
-        }
+        },
+    },
+
+    methods: {
+        update() {
+            const inv = this.invs[this.sender];
+            this.senderName = inv.name;
+            this.senderAvatar = inv.avatar;
+        },
     },
 
     created() {
-        this.$store.state.bus.$on(this.onUpdateHandler);
+        this.update();
+        this.$store.state.bus.$on('update', this.onUpdateHandler);
     },
 
     beforeDestroy() {
-        this.$store.state.bus.$off(this.onUpdateHandler);
+        this.$store.state.bus.$off('update', this.onUpdateHandler);
     }
 }
 </script>

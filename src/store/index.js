@@ -22,7 +22,8 @@ export default new Vuex.Store({
 		selfId: gen(),
 
 		groupInfo: {
-			name: '米勒山庄之巨石阵'
+			name: '米勒山庄之巨石阵',
+			id: null,
 		},
 
 		socket: null,
@@ -76,12 +77,13 @@ export default new Vuex.Store({
 
 		// 更新人物卡
 		update(state, pack) {
-			if (!state.invs[pack.uuid]) {
-				state.invs[pack.uuid] = pack;
+			if (!state.invs[pack.id]) {
+				state.invs[pack.id] = pack;
 			} else {
-				Object.assign(state.invs[pack.uuid], pack);
+				Object.assign(state.invs[pack.id], pack);
 			}
 			state.bus.$emit('update', pack);
+			console.debug('inv-updated', pack);
 		},
 		
 	},
@@ -101,13 +103,22 @@ export default new Vuex.Store({
 			} else {
 				dispatch('connectServer');
 			}
+			state.invs[state.selfId] = {
+				id: state.selfId,
+				name: '王五',
+				nationality: '',
+				story: '',
+				avatar: '',
+				values: [],
+				inventory: [],
+			};
 		},
 
-		initGroup({state, dispatch}, groupInfo) {
+		initGroup({state, commit}, groupInfo) {
 			state.groupInfo.name = groupInfo.name;
-			state.groupInfo.uuid = groupInfo.uuid;
-			state.valueInfos = groupInfo.valueInfos;
-			groupInfo.invList.forEach(uuid => dispatch('fetchInvInfo', uuid));
+			state.groupInfo.id = groupInfo.id;
+			state.valueInfos = groupInfo.valueInfos.reduce((p, valueInfo) => (p[valueInfo.id] = valueInfo, p), {});
+			groupInfo.invs.forEach(invData => commit('update', invData));
 			state.messages.push(...groupInfo.messages);
 		},
 
@@ -158,15 +169,15 @@ export default new Vuex.Store({
 			}
 		},
 
-		fetchInvInfo({commit}, uuid) {
-			axios.get(`http://${window.location.hostname}:8001/inv/${uuid}`)
+		fetchInvInfo({state, commit}, id) {
+			axios.get(`http://${window.location.hostname}:8001/inv/${id || state.selfId}`)
 			.then(res => commit('update', 'string' === typeof res.data ? JSON.parse(res.data) : res.data))
 			.catch(err => console.error(err));
 		},
 
 		commitInvInfo(store, invInfo) {
-			axios.put(`http://${window.location.hostname}:8001/inv/${invInfo.uuid}`, invInfo)
-			.then(() => console.debug('Inv updated', invInfo.uuid));
+			axios.put(`http://${window.location.hostname}:8001/inv/${invInfo.id}`, invInfo)
+			.then(() => console.debug('Inv updated', invInfo.id));
 		},
 
 
@@ -199,7 +210,7 @@ export default new Vuex.Store({
 		handlePack({dispatch}, pack) {
 			switch(pack.type) {
 				case 'message': dispatch('appendMessage', pack.message); break;
-				case 'update': dispatch('fetchInvInfo', pack.uuid); break;
+				case 'update': dispatch('fetchInvInfo', pack.id); break;
 			}
 		},
 

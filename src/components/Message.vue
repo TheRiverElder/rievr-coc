@@ -3,10 +3,10 @@
         <!-- 其他人头像 -->
         <v-avatar 
             size="36"
-            :color="senderAvatar ? 'transparent' : 'indigo'" 
+            :color="senderAvatar ? 'white' : 'indigo'" 
             class="text-no-wrap ma-2"
         >
-            <v-img v-if="senderAvatar" :src="senderAvatar"/>
+            <img v-if="senderAvatar" :src="senderAvatar"/>
             <span v-else class="white--text">{{ senderName.slice(-2) }}</span>
         </v-avatar>
 
